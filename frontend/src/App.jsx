@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom"
+import { Navigate, Route, Routes, useLocation } from "react-router-dom"
 import HomePage from "./pages/home/HomePage"
 import SignUpPage from "./pages/auth/signup/SignUpPage"
 import LoginPage from "./pages/auth/login/LoginPage"
@@ -9,8 +9,13 @@ import ProfilePage from "./pages/profile/ProfilePage"
 import { Toaster } from "react-hot-toast"
 import { useQuery } from "@tanstack/react-query"
 import LoadingSpinner from "./components/common/LoadingSpinner"
+import FollowPage from "./pages/home/FollowPage"
+import FollowersFollowing from "./pages/profile/FollowersFollowing"
+import SearchPage from "./pages/Search/SearchPage"
+
 
 function App() {
+  const { pathname } = useLocation();
   const {data:authUser, isLoading}=useQuery({
     queryKey:['authUser'],
       queryFn: async()=>{
@@ -47,8 +52,12 @@ function App() {
 				<Route path='/signup' element={!authUser ? <SignUpPage />: <Navigate to="/" />} />
 				<Route path='/notifications' element={authUser ? <NotificationPage /> : <Navigate to="/login" />} />
 				<Route path='/profile/:username' element={authUser ? <ProfilePage />: <Navigate to="/login" />} />
+        <Route path='/followPage' element={authUser ? <FollowPage /> : <Navigate to="/login" />} />
+        <Route path="/followFollowing/:username/:type" element={authUser ? <FollowersFollowing /> : <Navigate to="/login" />} />
+        <Route path="/search" element={authUser ? <SearchPage /> : <Navigate to="/login" />} />
+
       </Routes>
-      {authUser && <RightPanel />}
+      {authUser && pathname !== "/followPage" && <RightPanel />}
       <Toaster />
     </div>
   )

@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import useFollow from "../../hooks/useFollow";
@@ -7,6 +7,8 @@ import RightPanelSkeleton from "../skeletons/RightPanelSkeleton";
 import LoadingSpinner from "./LoadingSpinner";
 
 const RightPanel = () => {
+	const navigate = useNavigate();// Navigation hook
+
 	const { data: suggestedUsers, isLoading } = useQuery({
 		queryKey: ["suggestedUsers"],
 		queryFn: async () => {
@@ -32,7 +34,7 @@ const RightPanel = () => {
 			<div className='bg-[#16181C] p-4 rounded-md sticky top-2'>
 				<p className='font-bold'>Who to follow</p>
 				<div className='flex flex-col gap-4'>
-					{/* item */}
+					{/* Suggested Users Skeleton */}
 					{isLoading && (
 						<>
 							<RightPanelSkeleton />
@@ -41,6 +43,8 @@ const RightPanel = () => {
 							<RightPanelSkeleton />
 						</>
 					)}
+
+					{/* Suggested Users */}
 					{!isLoading &&
 						suggestedUsers?.map((user) => (
 							<Link
@@ -74,9 +78,20 @@ const RightPanel = () => {
 								</div>
 							</Link>
 						))}
+
+					{/* "See All" Button */}
+					<div className='text-center mt-4'>
+						<button
+							className='btn bg-transparent text-white border border-slate-500 hover:bg-slate-700 rounded-full btn-sm'
+							onClick={() => navigate("/followPage")}
+						>
+							See All
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>
 	);
 };
+
 export default RightPanel;

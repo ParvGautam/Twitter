@@ -98,6 +98,72 @@ export const getSuggestedUsers = async (req, res) =>{
     }
 }
 
+export const followPage=async (req,res)=>{
+    try{
+        const userId= req.user._id
+        const userFollowedByMe=await User.findById(userId).select("following")
+
+        const users= await User.aggregate([
+            {
+                $match:{                      //$match-> it match the user whose id!=userId
+                    _id:{$ne:userId}
+                }
+            },
+        ])
+
+        const filterUsers= users.filter(user=>!userFollowedByMe.following.includes(user._id))
+
+        filterUsers.forEach(user=>user.password=null)
+        
+        res.status(200).json(filterUsers)
+
+    }catch(error){
+        console.log("Error in getSuggestedUsers", error.message);
+        res.status(500).json({error:error.message});
+    }
+}
+
+export const followFollowingPage = async (req, res) => {
+    try {
+        const { username, type } = req.params;  // Capture 'username' and 'type' from URL params
+        const userId = req.user._id;
+
+        if (!userId) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Find the user by their username
+        const user = await User.findOne({ username });
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        let users;
+        if (type === "following") {
+            users = await User.findById(user)
+                .select("following")
+                .populate("following", "-password");
+        } else if (type === "followers") {
+            users = await User.findById(user)
+                .select("followers")
+                .populate("followers", "-password");
+        } else {
+            return res.status(400).json({ error: "Invalid type. Use 'following' or 'followers'" });
+        }
+
+        if (!users) {
+            return res.status(404).json({ error: "No users found" });
+        }
+
+        res.status(200).json(users[type]);  // Return the appropriate list of users
+    } catch (error) {
+        console.log("Error in followFollowingPage:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+
 export const updateUser= async (req,res)=>{
     const{fullName, email,username,currPassword,newPassword,bio,link}=req.body;
     let{profileImg, coverImg}=req.body;
@@ -165,5 +231,25 @@ export const updateUser= async (req,res)=>{
     }catch(error){
         console.log("Error in updateUser", error.message);
         res.status(500).json({error:error.message});
+    }
+}
+
+export const searchUser= async(req, res)=> {
+    const query = req.params.query;
+    if (!query || query.trim() === "") {
+        return res.status(400).json({ message: "Search query is required" });
+    }
+    try {
+       
+        const users = await User.find({
+            $or: [
+                { username: { $regex: query, $options: "i" } }, 
+                { fullName: { $regex: query, $options: "i" } }  
+            ],
+        });
+
+        res.json(users); // Return the matching users
+    } catch (error) {
+        res.status(500).json({ error: "Failed to search users" });
     }
 }

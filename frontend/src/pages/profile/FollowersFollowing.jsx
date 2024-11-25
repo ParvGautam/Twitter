@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "react-router-dom";
-import useFollow from "../../hooks/useFollow"; // Assuming useFollow hook exists
 
 const SkeletonLoader = ({ count = 1 }) => {
   return Array(count)
@@ -39,7 +38,7 @@ const FollowersFollowing = () => {
   });
 
   // Fetch followers/following data
-  const { data, isLoading, isError, error, refetch } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: [`${type}-${username}`],
     queryFn: async () => {
       const res = await fetch(`/api/users/followFollowing/${username}/${type}`);
@@ -51,12 +50,6 @@ const FollowersFollowing = () => {
 
   // Fetch authenticated user data
   const { data: authUser } = useQuery({ queryKey: ["authUser"] });
-
-  // Initialize follow/unfollow hooks
-  const { follow, unfollow, isPending } = useFollow({
-    onSuccess: () => refetch(),
-    onError: (error) => console.error(error),
-  });
 
   if (profileLoading || isLoading) {
     return (
@@ -77,21 +70,6 @@ const FollowersFollowing = () => {
   if (isError) {
     return <div className="text-red-500 text-center">{error.message}</div>;
   }
-
-  if (!data || data.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p>No users found</p>
-      </div>
-    );
-  }
-
-  // Sort the list to place logged-in user at the top
-  const sortedData = [...data].sort((a, b) => {
-    if (a._id === authUser?._id) return -1; // Logged-in user first
-    if (b._id === authUser?._id) return 1;
-    return 0; // Maintain original order for others
-  });
 
   return (
     <div className="px-4 py-2">
@@ -123,54 +101,57 @@ const FollowersFollowing = () => {
         </div>
       </div>
 
-      {/* User List */}
+      {/* User List or No Users Message */}
       <div className="flex flex-col gap-4">
-        {sortedData.map((user) => {
-          const amIFollowing = authUser?.following.includes(user?._id); // Check if the current user is following the profile
+        {data && data.length > 0 ? (
+          data.map((user) => {
+            const amIFollowing = authUser?.following.includes(user?._id);
 
-          return (
-            <div
-              key={user._id}
-              className="flex items-center justify-between p-4 bg-[#16181C] rounded-md shadow-md w-[600px] mx-auto"
-            >
-              <Link to={`/profile/${user.username}`} className="flex gap-4 items-center flex-1">
-                <div className="avatar">
-                  <div className="w-10 h-10 rounded-full">
-                    <img src={user.profileImg || "/avatar-placeholder.png"} alt={user.username} />
+            return (
+              <div
+                key={user._id}
+                className="flex items-center justify-between p-4 bg-[#16181C] rounded-md shadow-md w-[600px] mx-auto"
+              >
+                <Link to={`/profile/${user.username}`} className="flex gap-4 items-center flex-1">
+                  <div className="avatar">
+                    <div className="w-10 h-10 rounded-full">
+                      <img
+                        src={user.profileImg || "/avatar-placeholder.png"}
+                        alt={user.username}
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-semibold text-white">{user.fullName}</span>
-                  <span className="text-sm text-slate-500">@{user.username}</span>
-                  {user.bio && (
-                    <p className="text-xs text-slate-400 mt-1 max-w-[400px] truncate">{user.bio}</p>
-                  )}
-                  <div className="flex gap-4 text-xs text-slate-500 mt-2">
-                    <span>{user.followers.length || 0} Followers</span>
-                    <span>{user.following.length || 0} Following</span>
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-white">{user.fullName}</span>
+                    <span className="text-sm text-slate-500">@{user.username}</span>
+                    {user.bio && (
+                      <p className="text-xs text-slate-400 mt-1 max-w-[400px] truncate">
+                        {user.bio}
+                      </p>
+                    )}
+                    <div className="flex gap-4 text-xs text-slate-500 mt-2">
+                      <span>{user.followers.length || 0} Followers</span>
+                      <span>{user.following.length || 0} Following</span>
+                    </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
 
-              {/* Hide Follow/Unfollow Button if the user is the logged-in user */}
-              {user._id !== authUser?._id && (
-                <button
-                  className="btn btn-outline rounded-full btn-sm"
-                  onClick={() => {
-                    if (amIFollowing) {
-                      unfollow(user._id); // Unfollow the user
-                    } else {
-                      follow(user._id); // Follow the user
-                    }
-                  }}
-                  disabled={isPending}
-                >
-                  {isPending ? "Loading..." : amIFollowing ? "Unfollow" : "Follow"}
-                </button>
-              )}
-            </div>
-          );
-        })}
+                {/* Status */}
+                <div className="text-sm text-gray-400">
+                  {user._id === authUser?._id
+                    ? "This is you"
+                    : amIFollowing
+                    ? "Following"
+                    : "Not following"}
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="p-4 bg-[#16181C] rounded-md shadow-md w-[600px] mx-auto text-center text-gray-500">
+            No {type === "followers" ? "followers" : "following"} found.
+          </div>
+        )}
       </div>
     </div>
   );
